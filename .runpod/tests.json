@@ -12,10 +12,7 @@
     "gpuTypeId": "NVIDIA A100 80GB PCIe",
     "gpuCount": 1,
     "allowedCudaVersions": [
-      "12.1",
-      "12.2",
-      "12.3",
-      "12.4"
+      "12.8"
     ]
   }
 }
