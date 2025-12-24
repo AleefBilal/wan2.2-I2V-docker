@@ -5,7 +5,7 @@ from diffusers.pipelines.wan.pipeline_wan_i2v import WanImageToVideoPipeline
 from diffusers.models.transformers.transformer_wan import WanTransformer3DModel
 
 # ---- CONFIG ----
-MODEL_ID = os.getenv("MODEL_ID", "Wan-AI/Wan2.2-I2V-14B")
+MODEL_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 
 
 print("Downloading Wan 2.2 models...")
