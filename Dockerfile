@@ -3,22 +3,37 @@ FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
-# System deps
+# System dependencies
 RUN apt-get update && apt-get install -y \
-    python3 python3-pip git ffmpeg \
+    python3 \
+    python3-pip \
+    python3-dev \
+    build-essential \
+    git \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Python deps first (cached layer)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+# Python tooling
+RUN pip install --upgrade pip setuptools wheel
+
+# Install PyTorch (CUDA index ONLY)
+RUN pip install --no-cache-dir \
+    torch==2.5.1+cu128 \
+    torchvision==0.20.1+cu128 \
+    torchaudio==2.5.1+cu128 \
     --index-url https://download.pytorch.org/whl/cu128
 
-# Copy code
+
+# Install remaining deps (PyPI + git)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
 COPY . .
 
-# 🔥 Pre-download model during build
+# Pre-download models at build time
 RUN python preload_model.py
 
 CMD ["python", "app.py"]
