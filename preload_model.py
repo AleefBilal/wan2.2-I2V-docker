@@ -1,53 +1,79 @@
+"""
+premodel_download.py
+
+Build-time ONLY script.
+- Downloads Wan 2.2 I2V base model files
+- Downloads Lightx2v LoRA weights
+- NO model loading
+- NO GPU / CUDA usage
+"""
+
+from huggingface_hub import snapshot_download
+from pathlib import Path
 import os
-import gc
-import torch
-from diffusers.pipelines.wan.pipeline_wan_i2v import WanImageToVideoPipeline
-from diffusers.models.transformers.transformer_wan import WanTransformer3DModel
 
-# ---- CONFIG ----
-MODEL_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
+# ---------------------------------------------------------------------
+# CONFIG
+# ---------------------------------------------------------------------
 
+WAN_REPO_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
+LORA_REPO_ID = "Kijai/WanVideo_comfy"
 
-print("Downloading Wan 2.2 models...")
+BASE_MODEL_DIR = "/models/Wan2.2-I2V-A14B-Diffusers"
+LORA_DIR = "/models/lora/WanVideo_comfy"
 
-# Avoid CUDA during build
-torch.set_default_device("cpu")
+# Ensure base dirs exist
+Path(BASE_MODEL_DIR).mkdir(parents=True, exist_ok=True)
+Path(LORA_DIR).mkdir(parents=True, exist_ok=True)
 
-transformer = WanTransformer3DModel.from_pretrained(
-    MODEL_ID,
-    subfolder="transformer",
-    torch_dtype=torch.bfloat16
+# ---------------------------------------------------------------------
+# DOWNLOAD WAN 2.2 BASE MODEL (exact tree, symlinks OK)
+# ---------------------------------------------------------------------
+
+print("📥 Downloading Wan 2.2 I2V base model...")
+
+wan_allow_patterns = [
+    "model_index.json",
+
+    "scheduler/*",
+
+    "text_encoder/*",
+    "tokenizer/*",
+
+    "transformer/*",
+    "transformer_2/*",
+
+    "vae/*",
+]
+
+wan_snapshot_path = snapshot_download(
+    repo_id=WAN_REPO_ID,
+    repo_type="model",
+    local_dir=BASE_MODEL_DIR,
+    local_dir_use_symlinks=True,   # keep HF blob layout (efficient)
+    allow_patterns=wan_allow_patterns,
 )
 
-transformer_2 = WanTransformer3DModel.from_pretrained(
-    MODEL_ID,
-    subfolder="transformer_2",
-    torch_dtype=torch.bfloat16
+print(f"✅ Wan base model downloaded to: {wan_snapshot_path}")
+
+# ---------------------------------------------------------------------
+# DOWNLOAD LIGHTX2V LoRA (real file, NO symlinks)
+# ---------------------------------------------------------------------
+
+print("📥 Downloading Lightx2v LoRA...")
+
+lora_allow_patterns = [
+    "Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors"
+]
+
+lora_snapshot_path = snapshot_download(
+    repo_id=LORA_REPO_ID,
+    repo_type="model",
+    local_dir=LORA_DIR,
+    local_dir_use_symlinks=False,  # LoRA must be a real file
+    allow_patterns=lora_allow_patterns,
 )
 
-pipe = WanImageToVideoPipeline.from_pretrained(
-    MODEL_ID,
-    transformer=transformer,
-    transformer_2=transformer_2,
-    torch_dtype=torch.bfloat16
-)
+print(f"✅ LoRA downloaded to: {lora_snapshot_path}")
 
-# ---- Download LoRA weights ----
-pipe.load_lora_weights(
-    "Kijai/WanVideo_comfy",
-    weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
-    adapter_name="lightx2v"
-)
-
-pipe.load_lora_weights(
-    "Kijai/WanVideo_comfy",
-    weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
-    adapter_name="lightx2v_2",
-    load_into_transformer_2=True
-)
-
-# Cleanup
-del pipe, transformer, transformer_2
-gc.collect()
-
-print("✅ Wan 2.2 models & LoRA cached successfully")
+print("🎉 All models downloaded successfully (download-only, offline-ready)")
