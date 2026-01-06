@@ -13,6 +13,8 @@ This is the **recommended and production-safe setup** for large video generation
 
 If the models are **not already present**, a helper script (`preload_model.py`) is provided to download **only the required files**.
 
+This structure was ran and tested on **Nvidia A100 PCIe GPU**
+
 ---
 
 ## ✨ Features
@@ -75,7 +77,7 @@ Upload to S3
 * A RunPod **persistent volume** is mounted at:
 
 ```
-/runpod-volume/models
+/runpod-volume
 ```
 
 * The runtime loads models directly from this path
